@@ -6,7 +6,6 @@
 
 */
 
-
 /* The default size of the disk and file system block */
 #define BLOCKSIZE 256
 /* Your program should use a 10240 Byte disk size giving you 40 blocks total. This is a default size. You must be able to support different possible values */
@@ -32,6 +31,18 @@ int tfs_deleteFile(fileDescriptor FD);
 int tfs_readByte(fileDescriptor FD, char *buffer);
 /* change the file pointer location to offset (absolute). Returns success/error codes.*/
 int tfs_seek(fileDescriptor FD, int offset);
+
+typedef struct {
+	unsigned char firstINode;
+	unsigned char[5] freeListBitVector;
+} superBlock;
+
+typedef struct {
+	unsigned char nextINode;
+	unsigned char nextFileExtent;
+	unsigned char fileSizeInBlocks;
+	char[9] filename;
+} iNode;
 
 typedef struct FDTable{
     int fd;
