@@ -9,3 +9,8 @@
 #define FSMFILE	-6		//too many open files
 
 #endif
+
+
+/*more erros
+file already open
+*/

@@ -1,4 +1,5 @@
 #include "libDisk.h"
+#include "libTinyFS.h"
 
 node *head = NULL; //head = neweset node
 
@@ -20,21 +21,25 @@ int openDisk(char *filename, int nBytes){
             head = addNode(head);
         }
     }
-        head->fd = fd;
+        fclose(fd);
+        head->filename = filename;
         return head->disk;
 }
 
 int readBlock(int disk, int bNum, void *block){
-    FILE* fd = getDisk(head, disk);
-    fseek(fd, bNum * BLOCK_SIZE, SEEK_SET);
+    FILE* fd = fopen(getDisk(head, disk),"r");
+    fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
     fread(block, BLOCK_SIZE, 1, fd);
+    fclose(fd)
     return 0;
 }
 
 int writeBlock(int disk, int bNum, void *block){
-    FILE* fd = getDisk(head, disk);
-    fseek(fd, bNum * BLOCK_SIZE, SEEK_SET);
+    FILE* fd = fopen(getDisk(head, disk),"r+");
+    fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
     fwrite(block, BLOCK_SIZE, 1, fd);
+    fclose(fd);
+    //add recovery?
     return 0;
 }
 

@@ -2,10 +2,12 @@
 #include "libTinyFS.h"
 
 int mountedDisk = -1;
-diskNode* diskInfoHead = NULL;
+FDTable fdTable;
+diskInfo dInfo;
 
 
 int tfs_mkfs(char *filename, int nBytes){
+	fdTable = calloc(sizeof(FDTable), DEFAULT_DISK_SIZE / BLOCKSIZE);
 	int disk = openDisk(filename, nBytes);
 	if(disk < 0){
 		return disk; //some error occurred
@@ -33,27 +35,20 @@ int tfs_mkfs(char *filename, int nBytes){
 	}else{// file already exists
 		//NEED TO CHECK IF mountable -> how?
 	}
-	diskInfoHead = addDiskNode(diskInfoHead);
-	diskInfoHead->disk = disk;
-	diskInfoHead->filename = filename;
+	//don't need linked lists?
+	dInfo = *calloc(sizeof(diskInfo),1); 
+	dInfo.disk = disk;
+	dInfo.filename = filename;
 	return 0;
 
 }
 int tfs_mount(char *filename){
-//checks to see if file is mountable?
-	diskNode* temp = diskInfoHead;
-	while(temp){
-		if(temp->filename = filename){
-			mountedDisk = temp->disk;
-			break;
-		}
-		temp = temp->next
-	}
+	//checks to see if file is mountable
+	//anything else to load into mem?
+	mountedDisk = dInfo.disk;
 }
 int tfs_unmount(void){
-	//close disk?
 	mountedDisk = -1;
-
 }
 
 fileDescriptor tfs_openFile(char *name){
@@ -79,15 +74,19 @@ int tfs_seek(fileDescriptor FD, int offset){
 
 /* to-do list
 	what to do with error codes? -> print
+	file descriptor table (contains offset pointer)
+
 */
 
 /*questions:
 	how to implement error codes? -> print?
-	is it unmountable if superblock does not have magic number? 
-	max number of blocks per disk? 
-		for free block pointer list.. if no would it be 
-			better to do offset from current block?
-	//check if correct type in mount? -> check first magic num?
+	is it unmountable if superblock does 
+	not have magic number? 	-> superblock has 
+	magic number, number free blocks is correct/where 
+	they are supposed to be
+
+
+	max number of blocks per disk? yes
 
 	//should unmount close the disk?
 	//max number of open disks?

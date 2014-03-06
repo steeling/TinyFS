@@ -33,23 +33,15 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 /* change the file pointer location to offset (absolute). Returns success/error codes.*/
 int tfs_seek(fileDescriptor FD, int offset);
 
-typedef struct diskNode{ // contains disks
+typedef struct FDTable{
+    int fd;
+    unsigned long offset;
+    char[9] filename;
+}FDTable;
+
+typedef struct diskInfo{ // contains disks
 	int disk;
 	char* filename;
-	struct diskNode* next;
 }diskNode;
-
-diskNode* addDiskNode(diskNode* base){
-	node* temp;
-
-    if(base != NULL){
-        temp = base;
-        base = calloc(sizeof(diskNode),1);
-        base->next = temp;
-    }else{
-        base = calloc(sizeof(diskNode),1);
-    }
-    return base;
-}
 
 #endif
