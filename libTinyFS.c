@@ -7,6 +7,8 @@ diskInfo dInfo;
 
 
 int tfs_mkfs(char *filename, int nBytes){
+	//set empty blocks
+	//set superblock
 	fdTable = calloc(sizeof(FDTable), DEFAULT_DISK_SIZE / BLOCKSIZE);
 	int disk = openDisk(filename, nBytes);
 	if(disk < 0){
@@ -17,14 +19,16 @@ int tfs_mkfs(char *filename, int nBytes){
 	if(nBytes > 0){
 		int x = 1;
 
-		//initialize file
+		//initialize superblock
 		initBytes[0] = 1; //set block type
 		initBytes[1] = 0x45;
-		initBytes[2] = 1; //start of free block pointer
+		initBytes[2] = 0; //used block vector
 		//initBytes[4] = //block number of root inode
+		//number free blocks
+		//nBytes/blockSize
+		
 
 		writeBlock(disk,0,initBytes);
-
 		initBytes[0] = 4; //set block type
 		for(x; x < nBytes / BLOCKSIZE; x++){
 			initBytes[2] += 1; // assume no overflow

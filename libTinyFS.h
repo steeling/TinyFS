@@ -36,6 +36,7 @@ int tfs_seek(fileDescriptor FD, int offset);
 typedef struct FDTable{
     int fd;
     unsigned long offset;
+    int firstBlock;
     char[9] filename;
 }FDTable;
 
