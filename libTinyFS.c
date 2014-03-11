@@ -2,20 +2,19 @@
 #include "libTinyFS.h"
 
 int mountedDisk = -1;
-//FDTable fdTable;
-fileTableEntry *fileTable = NULL;
+fileTableEntry *fileTable;
 diskInfo dInfo;
 
-char *blockBuffer = calloc(BLOCKSIZE, sizeof(char));
+unsigned char *blockBuffer;
 
-fdList *openFDs = NULL;
+fdList *openFDs;
 int numOpenFiles = 0;
 
 
 int tfs_mkfs(char *filename, int nBytes){
 	//set empty blocks
 	//set superblock
-	fdTable = calloc(sizeof(FDTable), DEFAULT_DISK_SIZE / BLOCKSIZE);
+	fileTable = calloc(sizeof(fileTableEntry), DEFAULT_DISK_SIZE / BLOCKSIZE);
 	int disk = openDisk(filename, nBytes);
 	if(disk < 0){
 		return disk; //some error occurred
@@ -23,41 +22,82 @@ int tfs_mkfs(char *filename, int nBytes){
 	//new file if nBytes > 0
 	unsigned char* initBytes = calloc(sizeof(char),BLOCKSIZE);
 	if(nBytes > 0){
-		int x = 1;
-
+		int x;
 		//initialize superblock
 		initBytes[0] = 1; //set block type
 		initBytes[1] = 0x45;
-		initBytes[2] = 0; //used block vector
+		initBytes[2] = 0; //pointer to inode, will be set when first file created
+		initBytes[4] -= 1;
+		initBytes[4] = initBytes[4] >> 1;
+		initBytes[5] -=1;
+		initBytes[6] -=1;
+		initBytes[7] -=1;
+		initBytes[8] -=2;
+		writeBlock(disk,0,initBytes);
+		for(x = 4; x < 9; x++){
+			initBytes[x] = 0;
+		}
 		//initBytes[4] = //block number of root inode
 		//number free blocks
 		//nBytes/blockSize
 		
-
-		writeBlock(disk,0,initBytes);
 		initBytes[0] = 4; //set block type
 		for(x; x < nBytes / BLOCKSIZE; x++){
-			initBytes[2] += 1; // assume no overflow
-
 			writeBlock(disk,x,initBytes);
 		}
-
-	}else{// file already exists
-		//NEED TO CHECK IF mountable -> how?
+	}else{
+		return 0;
 	}
-	//don't need linked lists?
-	dInfo = *calloc(sizeof(diskInfo),1); 
+	free(initBytes);
+	blockBuffer = calloc(BLOCKSIZE, sizeof(char));
+	dInfo = *(diskInfo*)calloc(sizeof(diskInfo),1); 
 	dInfo.disk = disk;
 	dInfo.filename = filename;
+	dInfo.size = nBytes / BLOCKSIZE;
 	return 0;
 
 }
 int tfs_mount(char *filename){
 	//checks to see if file is mountable
-	//anything else to load into mem?
+	int x, y, mask, disk = dInfo.disk;
+	unsigned char *freeBlock = calloc(sizeof(char), BLOCKSIZE);
+	unsigned char vector;
+	readBlock(disk,0,blockBuffer);
+		if(blockBuffer[0] != 1 && blockBuffer[1] != 0x45){
+			free(freeBlock);
+			return -1; // disk corrupted
+		}
+	for(x = 1; x < dInfo.size; x++){
+		readBlock(disk,x,freeBlock);
+		if(freeBlock[1] != 0x45){
+			free(freeBlock);
+			return -1; //disk corrupted
+		}
+		y = 4+ (x / 8);
+		vector = blockBuffer[y];
+		mask = 1 << (7 - (x % 8)); 
+		if(freeBlock[0] == 4){//empty block
+			if(vector & mask == 0){
+				free(freeBlock);
+				return -1;
+			}
+		}else{
+			if(vector & mask != 0){
+				free(freeBlock);
+				return -1;
+			}
+		}
+	}
+	free(freeBlock);
 	mountedDisk = dInfo.disk;
+	return 0;
 }
+
+
 int tfs_unmount(void){
+	free(fileTable);
+	free(&dInfo);
+	free(blockBuffer);
 	mountedDisk = -1;
 }
 
@@ -125,10 +165,10 @@ int openFile(int iNode, char *name) {
 		openFDs = openFDs->next;
 	}
 	fileTableEntry myEntry = fileTable[fd];
-	myEntry->iNode = iNode;
-	myEntry->offset = 0;
-	myEntry->valid = 1;
-	strcpy(myEntry->filename, name);
+	myEntry.iNode = iNode;
+	myEntry.offset = 0;
+	myEntry.valid = 1;
+	strcpy(myEntry.filename, name);
 	
 	numOpenFiles++;
 	return fd;

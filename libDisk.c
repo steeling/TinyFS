@@ -29,15 +29,15 @@ int openDisk(char *filename, int nBytes){
 int readBlock(int disk, int bNum, void *block){
     FILE* fd = fopen(getDisk(head, disk),"r");
     fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
-    fread(block, BLOCK_SIZE, 1, fd);
-    fclose(fd)
+    fread(block, BLOCKSIZE, 1, fd);
+    fclose(fd);
     return 0;
 }
 
 int writeBlock(int disk, int bNum, void *block){
     FILE* fd = fopen(getDisk(head, disk),"r+");
     fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
-    fwrite(block, BLOCK_SIZE, 1, fd);
+    fwrite(block, BLOCKSIZE, 1, fd);
     fclose(fd);
     //add recovery?
     return 0;

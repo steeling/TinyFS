@@ -5,7 +5,9 @@
 	success >= 0
 
 */
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #define MAX_FILE_NAME_LENGTH 8
 /* The default size of the disk and file system block */
 #define BLOCKSIZE 256
@@ -36,14 +38,14 @@ int tfs_seek(fileDescriptor FD, int offset);
 
 typedef struct {
 	unsigned char firstINode;
-	unsigned char[5] freeListBitVector;
+	unsigned char freeListBitVector[5];
 } superBlockFormat;
 
 typedef struct {
 	unsigned char nextINode;
 	unsigned char nextFileExtent;
 	unsigned char fileSizeInBlocks;
-	char[9] filename;
+	char filename[9];
 } iNodeFormat;
 
 typedef struct fileTableEntry {
@@ -51,13 +53,13 @@ typedef struct fileTableEntry {
 	unsigned char iNode;
     unsigned long offset;
     int firstBlock;
-    char[9] filename;
+    char filename[9];
 } fileTableEntry;
 
 typedef struct fdList {
 	fileDescriptor fd;
 	struct fdList *next;
-} fdList
+} fdList;
 
 extern fileTableEntry *fileTable;
 
@@ -67,8 +69,9 @@ extern int numOpenFiles;
 
 typedef struct diskInfo{ // contains disks
 	int disk;
+	int size;
 	char* filename;
-} diskNode;
+} diskInfo;
 
 
 int fileIsOpen(char *);
