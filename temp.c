@@ -2,11 +2,21 @@
 #include <stdlib.h>
 #include <errno.h>
 int main(){
-	printf("%d\n",errno);
-	int x;
-	FILE* fd = fopen("asdfasdf", "r");
-	printf("%d\n", x = errno);
-	printf("%s\n",strerror(x));
+int temp;
+	FILE* fd;
+	char c = 'a';
+	printf("start\n");
+	fd = fopen("tinyFSDisk", "r+");
+	printf("go\n");
+	if(fwrite(&c, 1, 1, fd) < 1){
+        printf("asdfasdf  %s  %d\n",strerror(errno),fd);
+    }
+        printf("asdfasdf %d\n",fd);
+	// printf("%d\n",errno);
+	// int x;
+	// FILE* fd = fopen("asdfasdf", "r");
+	// printf("%d\n", x = errno);
+	// printf("%s\n",strerror(x));
 	// unsigned char x = 0;
 	// x -= 2;
 	// //printf("%d\n", x);

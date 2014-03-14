@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tinyFS.h"
 #include "libTinyFS.h"
 #include "TinyFS_errno.h"
 
@@ -42,10 +41,13 @@ main ()
 
   fileDescriptor aFD, bFD;
   int i, returnValue;
-
+  int temp = 0;
 /* try to mount the disk */
+  printf("%d\n",temp++);
   if (tfs_mount(DEFAULT_DISK_NAME) < 0)	/* if mount fails */
     {
+       printf("%d\n",temp++);
+       
       tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);	/* then make a new disk */
       if (tfs_mount(DEFAULT_DISK_NAME) < 0)	/* if we still can't open it... */
 	{
@@ -54,6 +56,7 @@ main ()
 	}
     }
 
+    printf("%d\n",temp++);
 
   afileContent = (char *) malloc (afileSize * sizeof (char));
   if (fillBufferWithPhrase (phrase1, afileContent, afileSize) < 0)
@@ -61,6 +64,7 @@ main ()
       perror ("failed");
       return;
     }
+    printf("%d\n",temp++);
 
   bfileContent = (char *) malloc (bfileSize * sizeof (char));
   if (fillBufferWithPhrase (phrase2, bfileContent, bfileSize) < 0)
@@ -77,6 +81,7 @@ main ()
 
 /* read or write files to TinyFS */
 
+  printf("%d\n",temp++);
 
   aFD = tfs_openFile ("afile");
 
@@ -84,6 +89,7 @@ main ()
     {
       perror ("tfs_openFile failed on afile");
     }
+    printf("%d\n",temp++);
 
 /* now, was there already a file named "afile" that had some content? If we can read from it, yes!
  *  * If we can't read from it, it presumably means the file was empty.
@@ -92,6 +98,8 @@ main ()
   if (tfs_readByte (aFD, &readBuffer) < 0)
     {
       /* if readByte() fails, there was no afile, so we write to it */
+       printf("%d\n",temp++);
+     
       if (tfs_writeFile (aFD, afileContent, afileSize) < 0)
 	{
 	  perror ("tfs_writeFile failed");

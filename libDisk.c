@@ -68,11 +68,14 @@ int readBlock(int disk, int bNum, void *block){
 
 int writeBlock(int disk, int bNum, void *block){
     FILE* fd;
-    if(!(fd = fopen(getDisk(head, disk),"r"))){
+        int temp;
+    if(!(fd = fopen(getDisk(head, disk),"r+"))){
         return DISKNOREAD;
     }
+
     fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
-    if(fwrite(block, BLOCKSIZE, 1, fd) < BLOCKSIZE){
+    if((temp = fwrite(block, BLOCKSIZE, 1, fd)) < BLOCKSIZE){
+        printf("asdfasdf  %s  %d\n",strerror(errno),temp);
         return INCOMPWRIT;
     }
     fclose(fd);

@@ -5,6 +5,7 @@ int mountedDisk = -1;
 fileTableEntry *fileTable;
 diskInfo dInfo;
 
+
 unsigned char *blockBuffer;
 
 fdList *openFDs;
@@ -61,6 +62,7 @@ int tfs_mkfs(char *filename, int nBytes){
 		return disk; //some error occurred
 	}
 	//new file if nBytes > 0
+	printf("opened\n");
 	unsigned char* initBytes = calloc(sizeof(char),BLOCKSIZE);
 	if(nBytes > 0){
 		int x;
@@ -79,9 +81,13 @@ int tfs_mkfs(char *filename, int nBytes){
 			initBytes[4+ (x / 8)] |= mask;
 			mask = mask >> 1;
 		}
-		if(err = writeBlock(disk,0,initBytes) < 0){
+		printf("no write\n");
+
+		if((err = writeBlock(disk,0,initBytes)) < 0){
+			printf("%dern\n",err);
 			return err;
-		};
+		}
+		printf("write\n");
 		for(x = 4; x < 9; x++){
 			initBytes[x] = 0;
 		}
@@ -98,6 +104,7 @@ int tfs_mkfs(char *filename, int nBytes){
 	}else{
 		return 0;
 	}
+	printf("close\n");
 	free(initBytes);
 	blockBuffer = calloc(BLOCKSIZE, sizeof(char));
 	//dInfo = *(diskInfo*)calloc(sizeof(diskInfo),1); 
@@ -111,15 +118,21 @@ int tfs_mount(char *filename){
 	if(mountedDisk != -1){
 		return MAXDISKS;
 	}
+	int flag = openDisk(filename,0);
+	if(flag < 0){
+		return NODISK;
+	}
 	//checks to see if file is mountable
 	int x, y, mask, disk = dInfo.disk;
 	unsigned char *freeBlock = calloc(sizeof(char), BLOCKSIZE);
 	unsigned char vector;
+	printf("read att\n");
 	readBlock(disk,0,blockBuffer);
-		if(blockBuffer[0] != 1 && blockBuffer[1] != 0x45){
-			free(freeBlock);
-			return DISKCORRUPT; // disk corrupted
-		}
+	printf("no read\n");
+	if(blockBuffer[0] != 1 && blockBuffer[1] != 0x45){
+		free(freeBlock);
+		return DISKCORRUPT; // disk corrupted
+	}
 	for(x = 1; x < dInfo.size; x++){
 		readBlock(disk,x,freeBlock);
 		if(freeBlock[1] != 0x45){
@@ -151,7 +164,8 @@ int tfs_unmount(void){
 	free(fileTable);
 	//free(&dInfo);
 	free(blockBuffer);
-	mountedDisk = -1;
+	dInfo.disk = mountedDisk = -1;
+
 }
 
 fileDescriptor tfs_openFile(char *name) {

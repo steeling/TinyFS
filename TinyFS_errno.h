@@ -17,7 +17,7 @@
 #define INCOMPREAD -14	//could not read file contents
 #define MAXDISKS -15	//can not mount anymore disks
 #define DISKCORRUPT -16	//disk is corrupted
-
+#define NODISK -17		//cannot find disk
 #endif
 
 
