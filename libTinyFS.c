@@ -10,6 +10,38 @@ unsigned char *blockBuffer;
 fdList *openFDs;
 int numOpenFiles = 0;
 
+void setBit(int block){
+	unsigned char mask = 1, temp;
+	mask = mask << 7;
+	temp = mask;
+	unsigned char* buff = calloc(sizeof(char), 1);
+	readBlock(dInfo.disk,0,buff);
+
+	mask = mask >> block % 8;
+	if(buff[4 + (block / 8)] ^ mask == 0)
+		printf("warning, this block is already set\n");
+	buff[4 +(block / 8)] |= mask;
+	mask = mask >> 1;
+	writeBlock(dInfo.disk,0,buff);
+	free(buff);
+}
+
+void clearBit(int block){
+	unsigned char mask = 1, temp;
+	mask = mask << 7;
+	temp = mask;
+	unsigned char* buff = calloc(sizeof(char), 1);
+	readBlock(dInfo.disk,0,buff);
+
+	mask = mask >> block % 8;
+	if(buff[4 + (block / 8)] & mask == 1)
+		printf("warning, this block is already set\n");
+	buff[4 +(block / 8)] &= ~mask;
+	mask = mask >> 1;
+	writeBlock(dInfo.disk,0,buff);
+	free(buff);
+}
+
 
 int tfs_mkfs(char *filename, int nBytes){
 	//set empty blocks
@@ -23,16 +55,21 @@ int tfs_mkfs(char *filename, int nBytes){
 	unsigned char* initBytes = calloc(sizeof(char),BLOCKSIZE);
 	if(nBytes > 0){
 		int x;
+		unsigned char mask = 0;
 		//initialize superblock
 		initBytes[0] = 1; //set block type
 		initBytes[1] = 0x45;
 		initBytes[2] = 0; //pointer to inode, will be set when first file created
-		initBytes[4] -= 1;
-		initBytes[4] = initBytes[4] >> 1;
-		initBytes[5] -=1;
-		initBytes[6] -=1;
-		initBytes[7] -=1;
-		initBytes[8] -=2;
+
+		int x;
+		for(x = 1; x < nBytes / BLOCKSIZE; x++){
+			if(x % 8 == 0){
+				mask = 1;
+				mask = mask << 6;
+			}
+			initBytes[4+ (x / 8)] |= mask;
+			mask = mask >> 1;
+		}
 		writeBlock(disk,0,initBytes);
 		for(x = 4; x < 9; x++){
 			initBytes[x] = 0;

@@ -36,12 +36,12 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 int tfs_seek(fileDescriptor FD, int offset);
 
 
-typedef struct {
+typedef struct __attribute__ ((__packed__)){
 	unsigned char firstINode;
 	unsigned char freeListBitVector[5];
 } superBlockFormat;
 
-typedef struct {
+typedef struct __attribute__ ((__packed__)){
 	unsigned char nextINode;
 	unsigned char nextFileExtent;
 	unsigned char fileSizeInBlocks;
