@@ -42,7 +42,7 @@ int clearBit(int block){
 
 	mask = mask >> block % 8;
 	if(buff[4 + (block / 8)] & mask == 1)
-		printf("warning, this block is already set\n");
+		printf("warning, this block is already clear\n");
 	buff[4 +(block / 8)] &= ~mask;
 	if(err = writeBlock(dInfo.disk,0,buff) < 0){
 		return err;
