@@ -5,6 +5,7 @@
 	success >= 0
 
 */
+#include "TinyFS_errno.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -37,21 +38,32 @@ int tfs_seek(fileDescriptor FD, int offset);
 
 
 typedef struct __attribute__ ((__packed__)){
+	unsigned char blockType;
+	unsigned char magicNumber;
 	unsigned char firstINode;
 	unsigned char freeListBitVector[5];
 } superBlockFormat;
 
 typedef struct __attribute__ ((__packed__)){
+	unsigned char blockType;
+	unsigned char magicNumber;
 	unsigned char nextINode;
 	unsigned char nextFileExtent;
-	unsigned char fileSizeInBlocks;
+	unsigned int fileSize;
 	char filename[9];
 } iNodeFormat;
+
+typedef struct {
+	unsigned char blockType;
+	unsigned char magicNumber;
+	unsigned char nextFileExtent;
+	unsigned char filler;
+}	fileExtentFormat;
 
 typedef struct fileTableEntry {
 	int valid;
 	unsigned char iNode;
-    unsigned long offset;
+    unsigned int offset;
     int firstBlock;
     char filename[9];
 } fileTableEntry;
