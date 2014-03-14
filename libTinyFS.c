@@ -11,39 +11,49 @@ fdList *openFDs;
 int numOpenFiles = 0;
 
 void setBit(int block){
+	int err;
 	unsigned char mask = 1, temp;
 	mask = mask << 7;
 	temp = mask;
 	unsigned char* buff = calloc(sizeof(char), 1);
-	readBlock(dInfo.disk,0,buff);
-
+	if(err = readBlock(dInfo.disk,0,buff) < 0){
+		return err;
+	}
 	mask = mask >> block % 8;
 	if(buff[4 + (block / 8)] ^ mask == 0)
 		printf("warning, this block is already set\n");
 	buff[4 +(block / 8)] |= mask;
-	mask = mask >> 1;
-	writeBlock(dInfo.disk,0,buff);
+	if(err = writeBlock(dInfo.disk,0,buff) < 0){
+		return err;
+	}
 	free(buff);
+	return 0;
 }
 
-void clearBit(int block){
+int clearBit(int block){
+	int err;
 	unsigned char mask = 1, temp;
 	mask = mask << 7;
 	temp = mask;
 	unsigned char* buff = calloc(sizeof(char), 1);
-	readBlock(dInfo.disk,0,buff);
+	if(err = readBlock(dInfo.disk,0,buff) < 0){
+		return err;
+	}
 
 	mask = mask >> block % 8;
 	if(buff[4 + (block / 8)] & mask == 1)
 		printf("warning, this block is already set\n");
 	buff[4 +(block / 8)] &= ~mask;
-	mask = mask >> 1;
-	writeBlock(dInfo.disk,0,buff);
+	if(err = writeBlock(dInfo.disk,0,buff) < 0){
+		return err;
+	}
 	free(buff);
+	return 0;
 }
 
 
 int tfs_mkfs(char *filename, int nBytes){
+	int err;
 	//set empty blocks
 	//set superblock
 	fileTable = calloc(sizeof(fileTableEntry), DEFAULT_DISK_SIZE / BLOCKSIZE);
@@ -70,7 +80,9 @@ int tfs_mkfs(char *filename, int nBytes){
 			initBytes[4+ (x / 8)] |= mask;
 			mask = mask >> 1;
 		}
-		writeBlock(disk,0,initBytes);
+		if(err = writeBlock(disk,0,initBytes) < 0){
+			return err;
+		};
 		for(x = 4; x < 9; x++){
 			initBytes[x] = 0;
 		}
@@ -80,7 +92,9 @@ int tfs_mkfs(char *filename, int nBytes){
 		
 		initBytes[0] = 4; //set block type
 		for(x; x < nBytes / BLOCKSIZE; x++){
-			writeBlock(disk,x,initBytes);
+			if(err = writeBlock(disk,x,initBytes) < 0){
+				return err;
+			}
 		}
 	}else{
 		return 0;
@@ -95,6 +109,9 @@ int tfs_mkfs(char *filename, int nBytes){
 
 }
 int tfs_mount(char *filename){
+	if(mountedDisk != -1){
+		return MAXDISKS;
+	}
 	//checks to see if file is mountable
 	int x, y, mask, disk = dInfo.disk;
 	unsigned char *freeBlock = calloc(sizeof(char), BLOCKSIZE);
@@ -102,13 +119,13 @@ int tfs_mount(char *filename){
 	readBlock(disk,0,blockBuffer);
 		if(blockBuffer[0] != 1 && blockBuffer[1] != 0x45){
 			free(freeBlock);
-			return -1; // disk corrupted
+			return DISKCORRUPT; // disk corrupted
 		}
 	for(x = 1; x < dInfo.size; x++){
 		readBlock(disk,x,freeBlock);
 		if(freeBlock[1] != 0x45){
 			free(freeBlock);
-			return -1; //disk corrupted
+			return DISKCORRUPT; //disk corrupted
 		}
 		y = 4+ (x / 8);
 		vector = blockBuffer[y];
@@ -116,12 +133,12 @@ int tfs_mount(char *filename){
 		if(freeBlock[0] == 4){//empty block
 			if(vector & mask == 0){
 				free(freeBlock);
-				return -1;
+				return DISKCORRUPT;
 			}
 		}else{
 			if(vector & mask != 0){
 				free(freeBlock);
-				return -1;
+				return DISKCORRUPT;
 			}
 		}
 	}
