@@ -5,6 +5,7 @@
 	success >= 0
 
 */
+#include "TinyFS_errno.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
