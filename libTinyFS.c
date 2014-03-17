@@ -76,11 +76,14 @@ int tfs_mkfs(char *filename, int nBytes){
 		for(x = 1; x < nBytes / BLOCKSIZE; x++){
 			if(x % 8 == 0){
 				mask = 1;
-				mask = mask << 6;
+				mask = mask << 7;
 			}
 			initBytes[4+ (x / 8)] |= mask;
 			mask = mask >> 1;
 		}
+		mask = 1;
+		mask = ~(mask << 7);
+		initBytes[4] |= mask;
 		printf("no write\n");
 
 		if((err = writeBlock(disk,0,initBytes)) < 0){
@@ -96,7 +99,7 @@ int tfs_mkfs(char *filename, int nBytes){
 		//nBytes/blockSize
 		
 		initBytes[0] = 4; //set block type
-		for(x; x < nBytes / BLOCKSIZE; x++){
+		for(x= 0; x < nBytes / BLOCKSIZE; x++){
 			if(err = writeBlock(disk,x,initBytes) < 0){
 				return err;
 			}
@@ -384,11 +387,11 @@ int openFile(int iNode, char *name) {
 	fileDescriptor fd = 0;
 	//check if no open space in table, then make new one
 	if (openFDs == NULL) {
-		fileTableEntry *newTable = malloc(sizeof(fileTableEntry) * (numOpenFiles + 1));
-		memcpy(newTable, fileTable, sizeof(fileTableEntry) * numOpenFiles);
-		fileTable = newTable;
+		fd = numOpenFiles;
+		printf("in here\n");
 	}
 	else {
+		printf("second\n");
 		fd = openFDs->fd;
 		openFDs = openFDs->next;
 	}

@@ -1,5 +1,6 @@
 #include "libDisk.h"
 
+#define BLOCKSIZE 256
 
 
 typedef struct node{
@@ -67,14 +68,15 @@ int readBlock(int disk, int bNum, void *block){
 }
 
 int writeBlock(int disk, int bNum, void *block){
-    FILE* fd;
+    FILE* fd = 0;
         int temp;
     if(!(fd = fopen(getDisk(head, disk),"r+"))){
         return DISKNOREAD;
     }
 
+    printf("fds: %d\n", bNum);
     fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
-    if((temp = fwrite(block, BLOCKSIZE, 1, fd)) < BLOCKSIZE){
+    if((temp = fwrite(block, 1, BLOCKSIZE, fd)) < BLOCKSIZE){
         printf("asdfasdf  %s  %d\n",strerror(errno),temp);
         return INCOMPWRIT;
     }

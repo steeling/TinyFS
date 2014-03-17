@@ -5,9 +5,7 @@ int main(){
 int temp;
 	FILE* fd;
 	char c = 'a';
-	printf("start\n");
 	fd = fopen("tinyFSDisk", "r+");
-	printf("go\n");
 	if(fwrite(&c, 1, 1, fd) < 1){
         printf("asdfasdf  %s  %d\n",strerror(errno),fd);
     }
