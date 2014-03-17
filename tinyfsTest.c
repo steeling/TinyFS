@@ -50,7 +50,8 @@ main ()
 	  perror ("failed to open disk");	/* then just exit */
 	  return;
 	}
-    }
+    }else
+      printf("mounted\n");
 
   afileContent = (char *) malloc (afileSize * sizeof (char));
   if (fillBufferWithPhrase (phrase1, afileContent, afileSize) < 0)
@@ -73,7 +74,7 @@ main ()
 
 /* read or write files to TinyFS */
 
-
+  printf("start\n");
   aFD = tfs_openFile ("afile");
   if (aFD < 0)
     {
@@ -98,13 +99,14 @@ main ()
       
     }
   else
-    {
+    { int temp;
       /* if yes, then just read and print the rest of afile that was already there */
       printf ("\n*** reading afile from TinyFS: \n%c", readBuffer);	/* print the first byte already read */
       /* now print the rest of it, byte by byte */
-      while (tfs_readByte (aFD, &readBuffer) >= 0)	/* go until readByte fails */
-	printf ("%c", readBuffer);
-
+      while (temp = tfs_readByte (aFD, &readBuffer) >= 0){	/* go until readByte fails */
+         printf ("%c", readBuffer);
+      }
+      //printf("failed on: %d\n",temp);
       /* close file */
       if (tfs_closeFile (aFD) < 0)
 	perror ("tfs_closeFile failed");
@@ -124,7 +126,6 @@ main ()
 
 /* now bfile tests */
   bFD = tfs_openFile ("bfile");
-
   if (bFD < 0)
     {
       perror ("tfs_openFile failed on bfile");
