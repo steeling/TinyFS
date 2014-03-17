@@ -173,12 +173,11 @@ fileDescriptor tfs_openFile(char *name) {
 	int iNode;
 	//check strlen
 	if (strlen(name) > MAX_FILE_NAME_LENGTH) {
-		myFD = -1; //ERRNO?
+		myFD = FILENAMETOOLONG;
 	}
 	//check if open
 	else if (myFD = fileIsOpen(name)) {
-		//Do nothing!
-		//error?
+		myFD = FILEOPEN;
 	}
 	//check if exists
 	else if (iNode = fileOnFS(name)) {
@@ -210,7 +209,7 @@ fileDescriptor tfs_openFile(char *name) {
 			writeBlock(dInfo.disk, iNode, blockBuffer);
 		}
 		else {
-			myFD = -1; //ERRNO
+			myFD = NODISKMEM;
 		}
 	}
 	return myFD;
@@ -219,8 +218,7 @@ fileDescriptor tfs_openFile(char *name) {
 int tfs_closeFile(fileDescriptor FD){
 	int rtn = 0;
 	if (!(fileTable[FD].valid)) {
-		//errno?
-		rtn = -1;
+		rtn = FSBADFD;
 	}
 	else {
 		fileTable[FD].valid = 0;
@@ -234,70 +232,76 @@ int tfs_closeFile(fileDescriptor FD){
 }
 
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
-	//if written to already, delete, open
-	readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
-	iNodeFormat *iNode = (iNodeFormat*)blockBuffer;
-	if (iNode->fileSize != 0) {
-		int next = iNode->nextFileExtent;
-		while (next) {
-			readBlock(dInfo.disk, next, blockBuffer);
-			fileExtentFormat *fileExtent = (fileExtentFormat *)blockBuffer;
-			clearBit(next);
-			next = fileExtent->nextFileExtent;
-		}
-	}
-	readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
-	iNode = (iNodeFormat*)blockBuffer;
-	iNode->fileSize = size;
-	int blocks = 0;
-	int fileSize = size;
-	int bufferOffset = 0;
-	size += sizeof(iNodeFormat); //iNode header size in bytes
-	while(size >= BLOCKSIZE) {
-		size -= (BLOCKSIZE - 4);  //fileExtent header size in bytes
-		blocks++;		
-	}
-	int *blocksUsed = malloc(blocks * sizeof(int));
-	int i, j, check;
-	for (i = 0; i < blocks; i++) {
-		check = spaceOnFS();
-		if (!check) {
-			//errno
-			//Not enough open blocks
-			//clear the ones I've "taken" so far
-			for (j = 0; j < i; j++ ) {
-				clearBit(blocksUsed[j]);
-			}
-		}
-		else {
-			blocksUsed[i] = check;
-		}
-	}
-
-	if (blocks == 0) { //fits in iNode
-		memcpy(blockBuffer + sizeof(iNodeFormat), buffer, fileSize);
-		writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	int rtn = 0;
+	if (!(fileTable[FD].valid)) {
+		rtn = FSBADFD;
 	}
 	else {
-		memcpy(blockBuffer + sizeof(iNodeFormat), buffer, BLOCKSIZE - sizeof(iNodeFormat));
-		writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
-		bufferOffset += BLOCKSIZE - sizeof(iNodeFormat);
-		for (i = 0; i < blocks-1; i++) {
-			readBlock(dInfo.disk, blocksUsed[i], blockBuffer);
-			memcpy(blockBuffer + sizeof(fileExtentFormat), buffer + bufferOffset, BLOCKSIZE - sizeof(fileExtentFormat));
-			bufferOffset += BLOCKSIZE - sizeof(fileExtentFormat);
+		readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+		iNodeFormat *iNode = (iNodeFormat*)blockBuffer;
+		if (iNode->fileSize != 0) {
+			int next = iNode->nextFileExtent;
+			while (next) {
+				readBlock(dInfo.disk, next, blockBuffer);
+				fileExtentFormat *fileExtent = (fileExtentFormat *)blockBuffer;
+				clearBit(next);
+				next = fileExtent->nextFileExtent;
+			}
 		}
-		readBlock(dInfo.disk, blocksUsed[i], blockBuffer);
-		memcpy(blockBuffer + sizeof(fileExtentFormat), buffer + bufferOffset, fileSize - bufferOffset);
-		writeBlock(dInfo.disk, blocksUsed[i], blockBuffer);
+		readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+		iNode = (iNodeFormat*)blockBuffer;
+		iNode->fileSize = size;
+		int blocks = 0;
+		int fileSize = size;
+		int bufferOffset = 0;
+		size += sizeof(iNodeFormat); //iNode header size in bytes
+		while(size >= BLOCKSIZE) {
+			size -= (BLOCKSIZE - 4);  //fileExtent header size in bytes
+			blocks++;		
+		}
+		int *blocksUsed = malloc(blocks * sizeof(int));
+		int i, j, check;
+		for (i = 0; i < blocks; i++) {
+			check = spaceOnFS();
+			if (!check) {
+				rtn = FSBIG;
+				//NOT ENOUGH SPACE FOR FILE, WHAT ERROR?
+				//clear the ones I've "taken" so far
+				for (j = 0; j < i; j++ ) {
+					clearBit(blocksUsed[j]);
+				}
+			}
+			else {
+				blocksUsed[i] = check;
+			}
+		}
+
+		if (blocks == 0) { //fits in iNode
+			memcpy(blockBuffer + sizeof(iNodeFormat), buffer, fileSize);
+			writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+		}
+		else {
+			memcpy(blockBuffer + sizeof(iNodeFormat), buffer, BLOCKSIZE - sizeof(iNodeFormat));
+			writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+			bufferOffset += BLOCKSIZE - sizeof(iNodeFormat);
+			for (i = 0; i < blocks-1; i++) {
+				readBlock(dInfo.disk, blocksUsed[i], blockBuffer);
+				memcpy(blockBuffer + sizeof(fileExtentFormat), buffer + bufferOffset, BLOCKSIZE - sizeof(fileExtentFormat));
+				bufferOffset += BLOCKSIZE - sizeof(fileExtentFormat);
+			}
+			readBlock(dInfo.disk, blocksUsed[i], blockBuffer);
+			memcpy(blockBuffer + sizeof(fileExtentFormat), buffer + bufferOffset, fileSize - bufferOffset);
+			writeBlock(dInfo.disk, blocksUsed[i], blockBuffer);
+		}
+		rtn = 1;
 	}
+	return rtn;
 }
 
 int tfs_deleteFile(fileDescriptor FD){
 	int rtn = 0;
 	if (!(fileTable[FD].valid)) {
-		//errno?
-		rtn = -1;
+		rtn = FSBADFD;
 	}
 	else {
 		//mark its blocks as Free
@@ -320,7 +324,7 @@ int tfs_deleteFile(fileDescriptor FD){
 		super->firstINode = nextINode;
 		writeBlock(dInfo.disk, 0, blockBuffer);
 		
-		tfs_closeFile(FD);
+		rtn = tfs_closeFile(FD);
 	}
 	return rtn;
 }
@@ -329,7 +333,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 	int rtn = 0;
 	fileTableEntry file = fileTable[FD];
 	if (!file.valid) {
-		//errno?
+		rtn = FSBADFD;
 	}
 	else {
 		int readLoc = file.offset;
@@ -363,6 +367,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 			memcpy(blockBuffer + readLoc, buffer, 1);
 		}
 		file.offset++;
+		rtn = 1;
 	}
 	return rtn;
 }
@@ -370,8 +375,7 @@ int tfs_seek(fileDescriptor FD, int offset){
 	int rtn = 0;
 	fileTableEntry file = fileTable[FD];
 	if (!file.valid) {
-		//errno?
-		rtn = -1;
+		rtn = FSBADFD;
 	}
 	else {
 		file.offset = offset;
