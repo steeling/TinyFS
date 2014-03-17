@@ -427,14 +427,12 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 	else {
 		int readLoc = file.offset;
 		int blocks = 0;
-		printf("block: %d %d\n", FD, file.iNode);
 		int rdRtn = readBlock(dInfo.disk, file.iNode, blockBuffer);
 		if (rdRtn < 0) {
 			return rdRtn;
 		}
 		iNodeFormat *iNode = (iNodeFormat *)blockBuffer;
 		if (iNode->fileSize <= readLoc) {
-			printf("eof: %d %x, %d\n", rtn, iNode->fileSize, readLoc);
 
 			return rtn = EOFREACH;
 		}
@@ -474,9 +472,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 		rtn = 1;
 	}
 	fileTable[FD] = file;
-	if(FD == 1){
-		printf("rtn: %d\n", rtn);
-	}
 	return rtn;
 }
 int tfs_seek(fileDescriptor FD, int offset){
@@ -527,7 +522,6 @@ int fileIsOpen(char *name) {
 }
 
 int fileOnFS(char *name) {
-	printf("in fileOnFS\n");
 	int iNode = 0, next = 0;
 	//check through iNodes
 	//return the iNode it is on
@@ -541,7 +535,6 @@ int fileOnFS(char *name) {
 	next = (int)(superBlock->firstINode);
 
 	while (next) {
-		printf("next: %d\n",next);
 
 
 		rdRtn = readBlock(dInfo.disk, next, blockBuffer);
@@ -549,8 +542,6 @@ int fileOnFS(char *name) {
 			return rdRtn;
 		}
 		iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
-		printf("%s\n",name);
-		printf("%s\n",iFormat->filename);
 		if (!strcmp(iFormat->filename, name)) {
 			iNode = next;
 			break;
