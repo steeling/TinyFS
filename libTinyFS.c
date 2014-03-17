@@ -398,6 +398,11 @@ int tfs_deleteFile(fileDescriptor FD){
 				return rdRtn;
 			}
 			fileExtentFormat *fileExtent = (fileExtentFormat *)blockBuffer;
+			fileExtentFormat->blockType = 4;
+			int wtRtn = writeBlock(dInfo.disk, next, blockBuffer);
+			if (wtRtn < 0) {
+				return wtRtn;
+			}
 			setBit(next);
 			next = fileExtent->nextFileExtent;
 		}		
@@ -407,11 +412,32 @@ int tfs_deleteFile(fileDescriptor FD){
 			return rdRtn;
 		}
 		superBlockFormat *super = (superBlockFormat *)blockBuffer;
-		super->firstINode = nextINode;
-		int wtRtn = writeBlock(dInfo.disk, 0, blockBuffer);
-		if (wtRtn < 0) {
-			return wtRtn;
+		int next = super->firstINode;
+		int block = 0;
+		while (next != file.iNode) {
+			rdRtn = readBlock(dInfo.disk, next, blockBuffer);
+			if (rdRtn < 0) {
+				return rdRtn;
+			}
+			iNodeFormat *iFormat = (iNodeFormat*)blockBuffer;
+			block = next;
+			next = iFormat->nextINode;
 		}
+		if (block) {
+			iFormat->nextINode = nextINode;
+			int wtRtn = writeBlock(dInfo.disk, block, blockBuffer);
+			if (wtRtn < 0) {
+				return wtRtn;
+			}
+		}
+		else {
+			super->firstINode = nextINode;
+			int wtRtn = writeBlock(dInfo.disk, 0, blockBuffer);
+			if (wtRtn < 0) {
+				return wtRtn;
+			}
+		}
+
 		
 		rtn = tfs_closeFile(FD);
 	}
