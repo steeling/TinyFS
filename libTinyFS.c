@@ -389,6 +389,11 @@ int tfs_deleteFile(fileDescriptor FD){
 		iNodeFormat *iFormat = (iNodeFormat*)blockBuffer;
 		int nextINode = iFormat->nextINode;
 		int next = iFormat->nextFileExtent;
+		iFormat->blockType = 4;
+		int wtRtn = writeBlock(dInfo.disk, file.iNode, blockBuffer);
+		if (wtRtn < 0) {
+			return wtRtn;
+		}
 		setBit(file.iNode);
 		while (next) {
 			rdRtn = readBlock(dInfo.disk, next, blockBuffer);
@@ -475,7 +480,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 			blocks++;
 			readLoc = readLoc % (BLOCKSIZE - sizeof(fileExtentFormat));
 		}
-
 		if (blocks) {
 			readLoc += sizeof(fileExtentFormat); //fileExtent header size in bytes
 			rdRtn = readBlock(dInfo.disk, file.iNode, blockBuffer);
