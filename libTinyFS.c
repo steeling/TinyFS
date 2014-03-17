@@ -398,6 +398,11 @@ int tfs_deleteFile(fileDescriptor FD){
 				return rdRtn;
 			}
 			fileExtentFormat *fileExtent = (fileExtentFormat *)blockBuffer;
+			fileExtentFormat->blockType = 4;
+			int wtRtn = writeBlock(dInfo.disk, next, blockBuffer);
+			if (wtRtn < 0) {
+				return wtRtn;
+			}
 			setBit(next);
 			next = fileExtent->nextFileExtent;
 		}		
