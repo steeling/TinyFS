@@ -208,7 +208,7 @@ fileDescriptor tfs_openFile(char *name) {
 		if (iNode = spaceOnFS()) {
 			myFD = openFile(iNode, name);
 			int nextINode = 0;
-			
+			printf("this node: %d\n", iNode);
 			readBlock(dInfo.disk, 0, blockBuffer);
 			superBlockFormat *super = (superBlockFormat *)blockBuffer;
 			nextINode = super->firstINode;
@@ -253,6 +253,7 @@ int tfs_closeFile(fileDescriptor FD){
 }
 
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
+
 	int rtn = 0;
 	if (!(fileTable[FD].valid)) {
 		rtn = FSBADFD;
