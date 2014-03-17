@@ -1,7 +1,7 @@
 //make linked list of free blocks
 #include "libTinyFS.h"
 
-int mountedDisk = -1;
+int mountedDisk = -1, totalDiskBytes;
 fileTableEntry *fileTable;
 diskInfo dInfo;
 
@@ -16,15 +16,18 @@ int setBit(int block){
 	unsigned char mask = 1, temp;
 	mask = mask << 7;
 	temp = mask;
-	unsigned char* buff = calloc(sizeof(char), 1);
+	unsigned char* buff = calloc(BLOCKSIZE, 1);
 	if(err = readBlock(dInfo.disk,0,buff) < 0){
+			free(buff);
+
 		return err;
 	}
 	mask = mask >> block % 8;
-	if(buff[4 + (block / 8)] ^ mask == 0)
+	if(buff[4 + (block / 8)] & mask == 1)
 		printf("warning, this block is already set\n");
 	buff[4 +(block / 8)] |= mask;
 	if(err = writeBlock(dInfo.disk,0,buff) < 0){
+			free(buff);
 		return err;
 	}
 	free(buff);
@@ -36,16 +39,18 @@ int clearBit(int block){
 	unsigned char mask = 1, temp;
 	mask = mask << 7;
 	temp = mask;
-	unsigned char* buff = calloc(sizeof(char), 1);
+	unsigned char* buff = calloc(BLOCKSIZE, 1);
 	if(err = readBlock(dInfo.disk,0,buff) < 0){
+		free(buff);
 		return err;
 	}
 
 	mask = mask >> block % 8;
-	if(buff[4 + (block / 8)] & mask == 1)
+	if(buff[4 + (block / 8)] & mask == 0)
 		printf("warning, this block is already clear\n");
 	buff[4 +(block / 8)] &= ~mask;
 	if(err = writeBlock(dInfo.disk,0,buff) < 0){
+		free(buff);
 		return err;
 	}
 	free(buff);
@@ -53,16 +58,15 @@ int clearBit(int block){
 }
 
 int tfs_mkfs(char *filename, int nBytes){
+	totalDiskBytes = nBytes;
 	int err;
 	//set empty blocks
 	//set superblock
-	fileTable = calloc(sizeof(fileTableEntry), DEFAULT_DISK_SIZE / BLOCKSIZE);
 	int disk = openDisk(filename, nBytes);
 	if(disk < 0){
 		return disk; //some error occurred
 	}
 	//new file if nBytes > 0
-	printf("opened\n");
 	unsigned char* initBytes = calloc(sizeof(char),BLOCKSIZE);
 	if(nBytes > 0){
 		int x;
@@ -84,13 +88,10 @@ int tfs_mkfs(char *filename, int nBytes){
 		mask = 1;
 		mask = ~(mask << 7);
 		initBytes[4] |= mask;
-		printf("no write\n");
 
 		if((err = writeBlock(disk,0,initBytes)) < 0){
-			printf("%dern\n",err);
 			return err;
 		}
-		printf("write\n");
 		for(x = 4; x < 9; x++){
 			initBytes[x] = 0;
 		}
@@ -99,7 +100,7 @@ int tfs_mkfs(char *filename, int nBytes){
 		//nBytes/blockSize
 		
 		initBytes[0] = 4; //set block type
-		for(x= 0; x < nBytes / BLOCKSIZE; x++){
+		for(x= 1; x < nBytes / BLOCKSIZE; x++){
 			if(err = writeBlock(disk,x,initBytes) < 0){
 				return err;
 			}
@@ -107,31 +108,42 @@ int tfs_mkfs(char *filename, int nBytes){
 	}else{
 		return 0;
 	}
-	printf("close\n");
 	free(initBytes);
-	blockBuffer = calloc(BLOCKSIZE, sizeof(char));
-	//dInfo = *(diskInfo*)calloc(sizeof(diskInfo),1); 
-	dInfo.disk = disk;
-	dInfo.filename = filename;
-	dInfo.size = nBytes / BLOCKSIZE;
 	return 0;
 
 }
+
+
+
 int tfs_mount(char *filename){
 	if(mountedDisk != -1){
 		return MAXDISKS;
 	}
-	int flag = openDisk(filename,0);
-	if(flag < 0){
+	int disk = openDisk(filename,0);
+	if(disk < 0){
 		return NODISK;
 	}
+
+	fileTable = calloc(sizeof(fileTableEntry), DEFAULT_DISK_SIZE / BLOCKSIZE);
+	blockBuffer = calloc(BLOCKSIZE, sizeof(char));
+	//dInfo = *(diskInfo*)calloc(sizeof(diskInfo),1); 
+	dInfo.disk = disk;
+	dInfo.filename = filename;
+	dInfo.size = totalDiskBytes / BLOCKSIZE;
+
+	printf("pass open\n");
 	//checks to see if file is mountable
-	int x, y, mask, disk = dInfo.disk;
+		int temp = 0;
+
+		printf("hello: %d\n", temp++);
+
+	int x, y, mask;
 	unsigned char *freeBlock = calloc(sizeof(char), BLOCKSIZE);
 	unsigned char vector;
-	printf("read att\n");
+		printf("hello: %d\n", temp++);
+
 	readBlock(disk,0,blockBuffer);
-	printf("no read\n");
+	printf("hello: %d\n", temp++);
 	if(blockBuffer[0] != 1 && blockBuffer[1] != 0x45){
 		free(freeBlock);
 		return DISKCORRUPT; // disk corrupted
@@ -159,6 +171,7 @@ int tfs_mount(char *filename){
 	}
 	free(freeBlock);
 	mountedDisk = dInfo.disk;
+	printf("fini");
 	return 0;
 }
 
@@ -172,6 +185,7 @@ int tfs_unmount(void){
 }
 
 fileDescriptor tfs_openFile(char *name) {
+	printf("Here\n");
 	fileDescriptor myFD;
 	int iNode;
 	//check strlen
@@ -180,28 +194,32 @@ fileDescriptor tfs_openFile(char *name) {
 	}
 	//check if open
 	else if (myFD = fileIsOpen(name)) {
+		printf("here\n");
+
 		myFD = FILEOPEN;
 	}
 	//check if exists
 	else if (iNode = fileOnFS(name)) {
+		printf("inode: %d\n",iNode);
 		myFD = openFile(iNode, name);
 	}
 	//create it
 	else {
 		if (iNode = spaceOnFS()) {
 			myFD = openFile(iNode, name);
-			setBit(iNode);
-			
 			int nextINode = 0;
 			
 			readBlock(dInfo.disk, 0, blockBuffer);
 			superBlockFormat *super = (superBlockFormat *)blockBuffer;
 			nextINode = super->firstINode;
+			printf("NODE: %d\n", nextINode);
 			super->firstINode = iNode;
 			writeBlock(dInfo.disk, 0, blockBuffer);
 			
 			//set up iNode
-			readBlock(dInfo.disk, iNode, blockBuffer);
+			free(blockBuffer);
+			blockBuffer = calloc(BLOCKSIZE, sizeof(char));
+
 			iNodeFormat *format = (iNodeFormat *)blockBuffer;
 			format->blockType = 2;
 			format->magicNumber = 0x45;
@@ -247,7 +265,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 			while (next) {
 				readBlock(dInfo.disk, next, blockBuffer);
 				fileExtentFormat *fileExtent = (fileExtentFormat *)blockBuffer;
-				clearBit(next);
+				setBit(next);
 				next = fileExtent->nextFileExtent;
 			}
 		}
@@ -271,7 +289,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 				//NOT ENOUGH SPACE FOR FILE, WHAT ERROR?
 				//clear the ones I've "taken" so far
 				for (j = 0; j < i; j++ ) {
-					clearBit(blocksUsed[j]);
+					setBit(blocksUsed[j]);
 				}
 			}
 			else {
@@ -314,11 +332,11 @@ int tfs_deleteFile(fileDescriptor FD){
 		iNodeFormat *iFormat = (iNodeFormat*)blockBuffer;
 		int nextINode = iFormat->nextINode;
 		int next = iFormat->nextFileExtent;
-		clearBit(file.iNode);
+		setBit(file.iNode);
 		while (next) {
 			readBlock(dInfo.disk, next, blockBuffer);
 			fileExtentFormat *fileExtent = (fileExtentFormat *)blockBuffer;
-			clearBit(next);
+			setBit(next);
 			next = fileExtent->nextFileExtent;
 		}		
 		
@@ -344,7 +362,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 		readBlock(dInfo.disk, file.iNode, blockBuffer);
 		iNodeFormat *iNode = (iNodeFormat *)blockBuffer;
 		if (iNode->fileSize <= readLoc) {
-			rtn = EOFREACH;
+			return rtn = EOFREACH;
 		}
 		readLoc += sizeof(iNodeFormat); //iNode header size in bytes
 		while(readLoc >= BLOCKSIZE) {
@@ -372,6 +390,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 		file.offset++;
 		rtn = 1;
 	}
+	fileTable[FD] = file;
 	return rtn;
 }
 int tfs_seek(fileDescriptor FD, int offset){
@@ -392,24 +411,22 @@ int openFile(int iNode, char *name) {
 	//check if no open space in table, then make new one
 	if (openFDs == NULL) {
 		fd = numOpenFiles;
-		printf("in here\n");
 	}
 	else {
-		printf("second\n");
 		fd = openFDs->fd;
 		openFDs = openFDs->next;
 	}
-	fileTableEntry myEntry = fileTable[fd];
-	myEntry.iNode = iNode;
-	myEntry.offset = 0;
-	myEntry.valid = 1;
-	strcpy(myEntry.filename, name);
+	(fileTable[fd]).iNode = iNode;
+	(fileTable[fd]).offset = 0;
+	(fileTable[fd]).valid = 1;
+	strcpy((fileTable[fd]).filename, name);
 	
 	numOpenFiles++;
 	return fd;
 }
 
 int fileIsOpen(char *name) {
+	printf("in open\n");
 	int fd = 0, i = 0;
 	//check through fileTable
 	while (i != numOpenFiles) {
@@ -421,6 +438,7 @@ int fileIsOpen(char *name) {
 			i++;
 		}
 	}
+	printf("returned\n");
 	return fd;
 }
 
@@ -431,45 +449,44 @@ int fileOnFS(char *name) {
 	
 	//get the superblock
 	readBlock(dInfo.disk, 0, blockBuffer);
+	printf("read super\n");
 	superBlockFormat *superBlock = (superBlockFormat *)blockBuffer;
 	next = (int)(superBlock->firstINode);
-	
+			printf("here %d\n",next);
+
 	while (next) {
+
 		readBlock(dInfo.disk, next, blockBuffer);
 		iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
+		//printf("what's here %x %x %x\n",blockBuffer[0], blockBuffer[1], blockBuffer[2]);
+
 		if (!strcmp(iFormat->filename, name)) {
 			iNode = next;
 			break;
 		}
 		next = (int)(iFormat->nextINode);
 	}
+
 	return iNode;
 }
 
 int spaceOnFS() {
-	printf("space1\n");
 	int iNode = 0, i, j;
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	int numBytes = 5; //numBlocks / 8;
 	int temp = readBlock(dInfo.disk, 0, blockBuffer);
-	printf("%x, %x, %d,\n",blockBuffer[0], blockBuffer[1],temp);
 	superBlockFormat *superBlock = (superBlockFormat *)blockBuffer;
 	//first open on freeListBitVector, or zero
-	printf("num: %d\n",numBytes);
 	for (i = 0; i < numBytes; i++) { // <= instead of < ?
 		//skip through if all full
 			for(j = 0; j < 8; j++) {
-				//printf("dump: %x\n",superBlock->freeListBitVector[i]);
 				if (((superBlock->freeListBitVector[i] >> (7-j)) & 1)) {
 					iNode = (i * 8) + j;
 					clearBit(iNode);
-					printf("node: %d\n",iNode);
 					return iNode;
 				}
 			}
 	}
-						printf("node1: %d\n",iNode);
-
 	return iNode;
 }
 

@@ -44,7 +44,6 @@ main ()
 /* try to mount the disk */
   if (tfs_mount(DEFAULT_DISK_NAME) < 0)	/* if mount fails */
     {
-       
       tfs_mkfs(DEFAULT_DISK_NAME, DEFAULT_DISK_SIZE);	/* then make a new disk */
       if (tfs_mount(DEFAULT_DISK_NAME) < 0)	/* if we still can't open it... */
 	{
@@ -52,7 +51,6 @@ main ()
 	  return;
 	}
     }
-
 
   afileContent = (char *) malloc (afileSize * sizeof (char));
   if (fillBufferWithPhrase (phrase1, afileContent, afileSize) < 0)
@@ -73,12 +71,10 @@ main ()
     ("(a) File content: %s\n(b) File content: %s\nReady to store in TinyFS\n",
      afileContent, bfileContent);
 
-
 /* read or write files to TinyFS */
 
 
   aFD = tfs_openFile ("afile");
-  printf("afd: %d\n", aFD);
   if (aFD < 0)
     {
       perror ("tfs_openFile failed on afile");

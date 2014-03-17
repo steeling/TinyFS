@@ -74,10 +74,8 @@ int writeBlock(int disk, int bNum, void *block){
         return DISKNOREAD;
     }
 
-    printf("fds: %d\n", bNum);
     fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
     if((temp = fwrite(block, 1, BLOCKSIZE, fd)) < BLOCKSIZE){
-        printf("asdfasdf  %s  %d\n",strerror(errno),temp);
         return INCOMPWRIT;
     }
     fclose(fd);
