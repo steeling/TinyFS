@@ -9,14 +9,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#define MAX_FILE_NAME_LENGTH 8
-/* The default size of the disk and file system block */
-#define BLOCKSIZE 256
-/* Your program should use a 10240 Byte disk size giving you 40 blocks total. This is a default size. You must be able to support different possible values */
-#define DEFAULT_DISK_SIZE 10240
-/* use this name for a default disk file name */
-#define DEFAULT_DISK_NAME "tinyFSDisk"
-typedef int fileDescriptor;
+#include "tinyFS.h"
+
+
 
 /* Makes a blank TinyFS file system of size nBytes on the file specified by ‘filename’. This function should use the emulated disk library to open the specified file, and upon success, format the file to be mountable. This includes initializing all data to 0x00, setting magic numbers, initializing and writing the superblock and inodes, etc. Must return a specified success/error code. */
 int tfs_mkfs(char *filename, int nBytes);

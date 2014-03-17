@@ -4,6 +4,8 @@
 
 #include "libTinyFS.h"
 #include "TinyFS_errno.h"
+#include "tinyFS.h"
+
 
 int main() {
 	int numBlocks = 0, notGood = 1;
