@@ -212,6 +212,7 @@ fileDescriptor tfs_openFile(char *name) {
 	else {
 		if (iNode = spaceOnFS()) {
 			myFD = openFile(iNode, name);
+
 			int nextINode = 0;
 			
 			int rdRtn = readBlock(dInfo.disk, 0, blockBuffer);
@@ -334,11 +335,17 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 				return wtRtn;
 			}
 			bufferOffset += BLOCKSIZE - sizeof(iNodeFormat);
+			fileExtentFormat *fileExtent;
 			for (i = 0; i < blocks-1; i++) {
 				rdRtn = readBlock(dInfo.disk, blocksUsed[i], blockBuffer);
 				if (rdRtn < 0) {
 					return rdRtn;
 				}
+				fileExtent = (fileExtentFormat *)blockBuffer;
+				fileExtent->blockType = 3;
+				fileExtent->magicNumber = 0x45;
+				fileExtent->nextFileExtent = blocksUsed[i+1];
+				fileExtent->filler = 0;
 				memcpy(blockBuffer + sizeof(fileExtentFormat), buffer + bufferOffset, BLOCKSIZE - sizeof(fileExtentFormat));
 				bufferOffset += BLOCKSIZE - sizeof(fileExtentFormat);
 			}
@@ -346,6 +353,11 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 			if (rdRtn < 0) {
 				return rdRtn;
 			}
+			fileExtent = (fileExtentFormat *)blockBuffer;
+			fileExtent->blockType = 3;
+			fileExtent->magicNumber = 0x45;
+			fileExtent->nextFileExtent = 0;
+			fileExtent->filler = 0;
 			memcpy(blockBuffer + sizeof(fileExtentFormat), buffer + bufferOffset, fileSize - bufferOffset);
 			wtRtn = writeBlock(dInfo.disk, blocksUsed[i], blockBuffer);
 			if (wtRtn < 0) {
