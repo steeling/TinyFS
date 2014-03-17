@@ -147,6 +147,7 @@ main ()
 	printf ("%c", readBuffer);
 
       tfs_deleteFile (bFD);
+
     }
 
 /* Free both content buffers */
