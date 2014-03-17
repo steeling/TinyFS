@@ -447,26 +447,29 @@ int fileOnFS(char *name) {
 }
 
 int spaceOnFS() {
+	printf("space1\n");
 	int iNode = 0, i, j;
 	int numBlocks = DEFAULT_DISK_SIZE / BLOCKSIZE;
 	int numBytes = 5; //numBlocks / 8;
-	readBlock(dInfo.disk, 0, blockBuffer);
+	int temp = readBlock(dInfo.disk, 0, blockBuffer);
+	printf("%x, %x, %d,\n",blockBuffer[0], blockBuffer[1],temp);
 	superBlockFormat *superBlock = (superBlockFormat *)blockBuffer;
 	//first open on freeListBitVector, or zero
+	printf("num: %d\n",numBytes);
 	for (i = 0; i < numBytes; i++) { // <= instead of < ?
 		//skip through if all full
-		if (superBlock->freeListBitVector[i] != 0xFF) {
 			for(j = 0; j < 8; j++) {
-				if (!((superBlock->freeListBitVector[i] >> j) & 1)) {
+				//printf("dump: %x\n",superBlock->freeListBitVector[i]);
+				if (((superBlock->freeListBitVector[i] >> (7-j)) & 1)) {
 					iNode = (i * 8) + j;
 					clearBit(iNode);
-
+					printf("node: %d\n",iNode);
 					return iNode;
 				}
 			}
-		}
-		
 	}
+						printf("node1: %d\n",iNode);
+
 	return iNode;
 }
 

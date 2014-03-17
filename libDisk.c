@@ -60,7 +60,7 @@ int readBlock(int disk, int bNum, void *block){
         return DISKNOREAD;
     }
     fseek(fd, bNum * BLOCKSIZE, SEEK_SET);
-    if(fread(block, BLOCKSIZE, 1, fd) < BLOCKSIZE){
+    if(fread(block, 1, BLOCKSIZE, fd) < BLOCKSIZE){
         return INCOMPREAD;
     }
     fclose(fd);

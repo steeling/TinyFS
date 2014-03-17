@@ -41,6 +41,7 @@ typedef struct __attribute__ ((__packed__)){
 	unsigned char blockType;
 	unsigned char magicNumber;
 	unsigned char firstINode;
+	unsigned char filler;
 	unsigned char freeListBitVector[5];
 } superBlockFormat;
 
