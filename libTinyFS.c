@@ -341,7 +341,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 		readBlock(dInfo.disk, file.iNode, blockBuffer);
 		iNodeFormat *iNode = (iNodeFormat *)blockBuffer;
 		if (iNode->fileSize <= readLoc) {
-			//errno
+			rtn = EOFREACH;
 		}
 		readLoc += sizeof(iNodeFormat); //iNode header size in bytes
 		while(readLoc >= BLOCKSIZE) {
