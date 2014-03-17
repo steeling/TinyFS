@@ -27,9 +27,28 @@ int main() {
 		}
     }
 	char *fileBuffer = calloc(sizeof(char), numBytes);
-	int deleteFD = tfs_openFile("deleteME");
-	tfs_writeFile(deleteFD, fileBuffer, 12);
-	tfs_deleteFile(deleteFD);
-	int checkFD = tfs_openFile("deleteME");
+	char *byteBuffer = malloc(sizeof(char));
+	int rtn, testFD;
+	//DELETE TEST
 	//delete then create with same name
+	int deleteFD = tfs_openFile("deleteME");
+	rtn = tfs_writeFile(deleteFD, fileBuffer, 12);
+	if (rtn < 0) {
+		perror("Write file failed for delete test");
+	}
+	rtn = tfs_deleteFile(deleteFD);
+	if (rtn < 0) {
+		perror("Delete file failed for delete test");
+	}
+	int checkFD = tfs_openFile("deleteME");
+	if (checkFD < 0) {
+		perror("Re-open failed for delete test");
+	}
+
+	//READ NOT WRITTEN TO TEST
+	testFD = tfs_openFile("ohai");
+	rtn = tfs_readByte(testFD, byteBuffer);
+	if (rtn != FILENOTWRIT) {
+		perror("Not expected conditions on read to not written file");
+	}
 }
