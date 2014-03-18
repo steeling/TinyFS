@@ -479,7 +479,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 			blocks++;
 			readLoc = readLoc % (BLOCKSIZE - sizeof(fileExtentFormat));
 		}
-
 		if (blocks) {
 			readLoc += sizeof(fileExtentFormat); //fileExtent header size in bytes
 			rdRtn = readBlock(dInfo.disk, file.iNode, blockBuffer);

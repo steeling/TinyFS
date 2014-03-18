@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "libTinyFS.h"
+#include "tinyFS.h"
 #include "TinyFS_errno.h"
 
 /* simple helper function to fill Buffer with as many inPhrase strings as possible before reaching size */
