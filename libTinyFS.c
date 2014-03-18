@@ -317,6 +317,7 @@ fileDescriptor tfs_openFile(char *name) {
 			if (wtRtn < 0) {
 				return wtRtn;
 			}
+			setCreated(myFD);
 		}
 		else {
 			myFD = NODISKMEM;
@@ -342,8 +343,7 @@ int tfs_closeFile(fileDescriptor FD){
 }
 
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
-		int wtRtn = 0;
-
+	int wtRtn = 0;
 	int rtn = 0;
 	if (!(fileTable[FD].valid)) {
 		rtn = FSBADFD;
@@ -452,6 +452,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 		}
 		rtn = 1;
 	}
+	setLastModified(FD);
 	return rtn;
 }
 
@@ -550,7 +551,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 
 			return rtn = EOFREACH;
 		}
-
 		if(readLoc + sizeof(iNodeFormat) < BLOCKSIZE)
 			readLoc += sizeof(iNodeFormat);
 		else{
@@ -595,6 +595,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 		rtn = 1;
 	}
 	fileTable[FD] = file;
+	setLastAccess(FD);
 	return rtn;
 }
 
@@ -699,6 +700,116 @@ int spaceOnFS() {
 			}
 	}
 	return iNode;
+}
+/* renames a file.  New name should be passed in. */
+int tfs_rename(fileDescriptor FD, char *newName) {
+	if (strlen(newName) > MAX_FILE_NAME_LENGTH) {
+		return FILENAMETOOLONG;
+	}
+	int iNodeLoc = fileTable[FD].iNode;
+	int rdRtn = readBlock(dInfo.disk, iNodeLoc, blockBuffer);
+	if (rdRtn < 0) {
+		return rdRtn;
+	}
+	iNodeFormat *iFormat = (iNodeFormat*)blockBuffer;
+	strcpy((fileTable[FD]).filename, newName);
+	strcpy(iFormat->filename, newName);
+	int wtRtn = writeBlock(dInfo.disk, iNodeLoc, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
+	return 1;
+}
+
+ /* lists all the files and directories on the disk */
+int tfs_readdir() {
+	int rdRtn = readBlock(dInfo.disk, 0, blockBuffer);
+	if (rdRtn < 0) {
+		return rdRtn;
+	}
+	superBlockFormat *super = (superBlockFormat *)blockBuffer;
+	int next = super->firstINode;
+	while(next) {
+		int rdRtn = readBlock(dInfo.disk, next, blockBuffer);
+		iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
+		next = iFormat->nextINode;
+		fprintf(stdout, "File name: %-8s   \tFile Size: %d\n", iFormat->filename, iFormat->fileSize);
+	}
+}
+
+struct timeval *tfs_readFileInfo(fileDescriptor FD) {
+	int rdRtn = readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (rdRtn < 0) {
+		return NULL;
+	}
+	iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
+	struct timeval *timestamps = calloc(3, sizeof(struct timeval));
+	timestamps[0] = iFormat->created;
+	timestamps[1] = iFormat->lastModified;
+	timestamps[2] = iFormat->lastAccess;
+
+
+	return timestamps;
+}
+
+int setCreated(fileDescriptor FD) {
+	int rdRtn = readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (rdRtn < 0) {
+		return rdRtn;
+	}
+	iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
+	struct timeval timestamp;
+	gettimeofday(&timestamp, NULL);
+	iFormat->created = timestamp;
+
+	int wtRtn = writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
+
+
+
+
+	return 1;
+}
+
+int setLastModified(fileDescriptor FD) {
+	int rdRtn = readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (rdRtn < 0) {
+		return rdRtn;
+	}
+	iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
+	struct timeval timestamp;
+	gettimeofday(&timestamp, NULL);
+	iFormat->lastModified = timestamp;
+
+	//printf("Last Modified: %ld.%06ld\n", iFormat->lastModified.tv_sec,iFormat->lastModified.tv_usec);
+
+	int wtRtn = writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
+
+
+
+	return 1;
+}
+
+int setLastAccess(fileDescriptor FD) {
+	int rdRtn = readBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (rdRtn < 0) {
+		return rdRtn;
+	}
+	iNodeFormat *iFormat = (iNodeFormat *)blockBuffer;
+	struct timeval timestamp;
+	gettimeofday(&timestamp, NULL);
+	iFormat->lastAccess = timestamp;
+
+	int wtRtn = writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
+	return 1;
 }
 
 /* to-do list
