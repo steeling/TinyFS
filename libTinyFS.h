@@ -31,6 +31,16 @@ int tfs_readByte(fileDescriptor FD, char *buffer);
 /* change the file pointer location to offset (absolute). Returns success/error codes.*/
 int tfs_seek(fileDescriptor FD, int offset);
 
+/* renames a file.  New name should be passed in. */
+int tfs_rename(fileDescriptor FD, char *newName);
+ /* lists all the files and directories on the disk */
+int tfs_readdir();
+/* returns the file’s creation time */
+struct timeval *tfs_readFileInfo(fileDescriptor FD);
+
+int setCreated(fileDescriptor FD);
+int setLastModified(fileDescriptor FD);
+int setLastAccess(fileDescriptor FD);
 
 typedef struct __attribute__ ((__packed__)){
 	unsigned char blockType;
@@ -47,6 +57,9 @@ typedef struct __attribute__ ((__packed__)){
 	unsigned char nextFileExtent;
 	unsigned int fileSize;
 	char filename[9];
+	struct timeval created;
+	struct timeval lastModified;
+	struct timeval lastAccess;
 } iNodeFormat;
 
 typedef struct {
