@@ -35,7 +35,7 @@ node *head = NULL; //head = neweset node
 
 int openDisk(char *filename, int nBytes){
     FILE* fd;
-    if(nBytes){
+    if(nBytes > 0){
         if(!(fd = fopen(filename,"w+"))){
             return DISKNOCREAT;
         }else{
@@ -49,9 +49,11 @@ int openDisk(char *filename, int nBytes){
             head = addNode(head);
         }
     }
-        fclose(fd);
-        head->filename = filename;
-        return head->disk;
+    if(nBytes == -1)
+        return PLACEHOLDER;
+    fclose(fd);
+    head->filename = filename;
+    return head->disk;
 }
 
 int readBlock(int disk, int bNum, void *block){

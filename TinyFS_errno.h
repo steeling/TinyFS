@@ -19,6 +19,7 @@
 #define DISKCORRUPT -16	//disk is corrupted
 #define NODISK -17		//cannot find disk
 #define FILENAMETOOLONG -18 //file name more than 8 chars
+#define PLACEHOLDER -19
 #endif
 
 

@@ -9,6 +9,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+
 #include "tinyFS.h"
 
 
@@ -79,6 +83,7 @@ typedef struct diskInfo{ // contains disks
 	int disk;
 	int size;
 	char* filename;
+	char* realName;
 } diskInfo;
 
 

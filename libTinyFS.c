@@ -1,5 +1,7 @@
 //make linked list of free blocks
 #include "libTinyFS.h"
+#include "TinyFS_errno.h"
+
 
 int mountedDisk = -1, totalDiskBytes;
 fileTableEntry *fileTable;
@@ -8,8 +10,12 @@ diskInfo dInfo;
 
 unsigned char *blockBuffer;
 
+
 fdList *openFDs;
 int numOpenFiles = 0;
+
+char finalPass[BLOCKSIZE];
+
 
 int setBit(int block){
 	int err;
@@ -58,7 +64,12 @@ int clearBit(int block){
 }
 
 int tfs_mkfs(char *filename, int nBytes){
+	char password1[BLOCKSIZE];
+	char password2[BLOCKSIZE];
+
 	totalDiskBytes = nBytes;
+	char strBuff[MAX_FILE_NAME_LENGTH + 20];
+	sprintf(strBuff,"%s.enc",filename);
 	int err;
 	//set empty blocks
 	//set superblock
@@ -109,6 +120,37 @@ int tfs_mkfs(char *filename, int nBytes){
 		return 0;
 	}
 	free(initBytes);
+	//create and delete encryption
+	password1[0] = 'p';
+	password1[1] = 'a';
+	password1[2] = 's';
+	password1[3] = 's';
+	password1[4] = ':';
+
+	password2[0] = 'p';
+	password2[1] = 'a';
+	password2[2] = 's';
+	password2[3] = 's';
+	password2[4] = ':';
+	while(1){
+		printf("enter password to encrypt disk\n");
+		scanf("%s",password1 + 5);
+		printf("confirm password\n");
+		scanf("%s",password2 + 5);
+		if(strcmp(password1,password2))
+			printf("passwords do not match\n");
+		else{
+			break;
+		}
+	}
+	int pid;
+	if((pid = fork())){//parent
+		int tempStatus;
+		waitpid(pid, &tempStatus,0);
+		remove(filename);
+	}else {//child
+		execl("/usr/bin/openssl", "enc", "-aes-256-cbc", "-salt", "-in", filename, "-out", strBuff, "-pass", password1, NULL);
+	}
 	return 0;
 
 }
@@ -116,19 +158,51 @@ int tfs_mkfs(char *filename, int nBytes){
 
 
 int tfs_mount(char *filename){
+
 	if(mountedDisk != -1){
 		return MAXDISKS;
 	}
+	char strBuff[MAX_FILE_NAME_LENGTH + 20];
+	sprintf(strBuff,"%s.enc",filename);
+
+
+	if(PLACEHOLDER == openDisk(strBuff, -1)){
+
+	//decrypt
+	char password1[BLOCKSIZE];
+	password1[0] = 'p';
+	password1[1] = 'a';
+	password1[2] = 's';
+	password1[3] = 's';
+	password1[4] = ':';
+	printf("enter password to mount disk\n");
+	scanf("%s",password1 + 5);
+	strcpy(finalPass,password1);
+
+	int pid;
+	if((pid = fork())){//parent
+		int tempStatus;
+		waitpid(pid, &tempStatus,0);
+	}else {//child
+		execl("/usr/bin/openssl", "enc", "-d", "-aes-256-cbc", "-in", strBuff, "-out", filename, "-pass", password1, NULL);
+	}
+	//finish decrypt
+}else{
+	return NODISK;
+}
 	int disk = openDisk(filename,0);
 	if(disk < 0){
 		return NODISK;
 	}
 
+
 	fileTable = calloc(sizeof(fileTableEntry), DEFAULT_DISK_SIZE / BLOCKSIZE);
 	blockBuffer = calloc(BLOCKSIZE, sizeof(char));
 	//dInfo = *(diskInfo*)calloc(sizeof(diskInfo),1); 
 	dInfo.disk = disk;
-	dInfo.filename = filename;
+	dInfo.filename = calloc(sizeof(char), MAX_FILE_NAME_LENGTH + 20);
+	strcpy(dInfo.filename, strBuff);
+	dInfo.realName = filename;
 	dInfo.size = totalDiskBytes / BLOCKSIZE;
 
 	//checks to see if file is mountable
@@ -179,6 +253,14 @@ int tfs_mount(char *filename){
 
 
 int tfs_unmount(void){
+	int pid;
+	if((pid = fork())){//parent
+		int tempStatus;
+		waitpid(pid, &tempStatus,0);
+	}else {//child
+		execl("/usr/bin/openssl", "enc", "-aes-256-cbc", "-salt", "-in", dInfo.realName, "-out", dInfo.filename, "-pass", finalPass, NULL);
+	}
+	remove(dInfo.realName);
 	free(fileTable);
 	//free(&dInfo);
 	free(blockBuffer);
@@ -490,7 +572,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 			int i, next = iNode->nextFileExtent;
 			fileExtentFormat *fileExtent;
 			for (i = 0; i < (blocks); i++) {
-				//printf("next: %d\n",next);
 
 				rdRtn = readBlock(dInfo.disk, next, blockBuffer);
 				if (rdRtn < 0) {
@@ -510,7 +591,6 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 			memcpy(buffer,blockBuffer + readLoc, 1);
 		}
 		file.offset++;
-			//printf("loc %d\n",readLoc);
 
 		rtn = 1;
 	}

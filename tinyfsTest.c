@@ -130,7 +130,7 @@ main ()
   if (bFD < 0)
     {
       perror ("tfs_openFile failed on bfile");
-    }
+    }else
 
   if (tfs_readByte (bFD, &readBuffer) < 0)
     {
@@ -146,7 +146,6 @@ main ()
       printf ("\n*** reading bfile from TinyFS: \n%c", readBuffer);
       while (tfs_readByte (bFD, &readBuffer) >= 0)
 	printf ("%c", readBuffer);
-
       tfs_deleteFile (bFD);
 
     }
