@@ -376,7 +376,7 @@ int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 
 int tfs_deleteFile(fileDescriptor FD){
 	int rtn = 0;
-	if (!(fileTable[FD].valid)) {
+	if (!(fileTable[FD] || !(fileTable[FD].valid)) {
 		rtn = FSBADFD;
 	}
 	else {
@@ -451,7 +451,7 @@ int tfs_deleteFile(fileDescriptor FD){
 int tfs_readByte(fileDescriptor FD, char *buffer){
 	int rtn = 0;
 	fileTableEntry file = fileTable[FD];
-	if (!file.valid) {
+	if (file == NULL || !file.valid) {
 		rtn = FSBADFD;
 	}
 	else {
@@ -522,7 +522,7 @@ int tfs_readByte(fileDescriptor FD, char *buffer){
 int tfs_seek(fileDescriptor FD, int offset){
 	int rtn = 0;
 	fileTableEntry file = fileTable[FD];
-	if (!file.valid) {
+	if (file == NULL || !file.valid) {
 		rtn = FSBADFD;
 	}
 	else {
