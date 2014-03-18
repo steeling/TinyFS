@@ -263,7 +263,7 @@ int tfs_closeFile(fileDescriptor FD){
 int tfs_writeFile(fileDescriptor FD, char *buffer, int size){
 	int wtRtn = 0;
 	int rtn = 0;
-	if (!(fileTable[FD].valid)) {
+	if (!(fileTable[FD] || !(fileTable[FD].valid)) {
 		rtn = FSBADFD;
 	}
 	else {
