@@ -667,7 +667,8 @@ struct timeval *tfs_readFileInfo(fileDescriptor FD) {
 	timestamps[0] = iFormat->created;
 	timestamps[1] = iFormat->lastModified;
 	timestamps[2] = iFormat->lastAccess;
-	
+
+
 	return timestamps;
 }
 
@@ -680,6 +681,15 @@ int setCreated(fileDescriptor FD) {
 	struct timeval timestamp;
 	gettimeofday(&timestamp, NULL);
 	iFormat->created = timestamp;
+
+	int wtRtn = writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
+
+
+
+
 	return 1;
 }
 
@@ -692,6 +702,16 @@ int setLastModified(fileDescriptor FD) {
 	struct timeval timestamp;
 	gettimeofday(&timestamp, NULL);
 	iFormat->lastModified = timestamp;
+
+	//printf("Last Modified: %ld.%06ld\n", iFormat->lastModified.tv_sec,iFormat->lastModified.tv_usec);
+
+	int wtRtn = writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
+
+
+
 	return 1;
 }
 
@@ -704,6 +724,11 @@ int setLastAccess(fileDescriptor FD) {
 	struct timeval timestamp;
 	gettimeofday(&timestamp, NULL);
 	iFormat->lastAccess = timestamp;
+
+	int wtRtn = writeBlock(dInfo.disk, fileTable[FD].iNode, blockBuffer);
+	if (wtRtn < 0) {
+		return wtRtn;
+	}
 	return 1;
 }
 

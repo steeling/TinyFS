@@ -63,11 +63,12 @@ int main() {
 	//TIMESTAMPS
 	printf("\nTIMESTAMP TEST\n");
 	testFD = tfs_openFile("timetest");
-	struct timeval *timestamp = tfs_readFileInfo(testFD);
-	wait(1);
+	wait(1000);
 	tfs_writeFile(testFD, fileBuffer, 10);
-	wait(2);
+	wait(1000);
 	tfs_readByte(testFD, byteBuffer);
+		struct timeval *timestamp = tfs_readFileInfo(testFD);
+
 	printf("Created: %ld.%06ld\n", timestamp[0].tv_sec,timestamp[0].tv_usec);
 	printf("Last Modified: %ld.%06ld\n", timestamp[1].tv_sec,timestamp[1].tv_usec);
 	printf("Last Accessed: %ld.%06ld\n", timestamp[2].tv_sec,timestamp[2].tv_usec);
